@@ -1,6 +1,6 @@
 {
   inputs = rec {
-    nixpkgs.url = "nixpkgs/nixos-22.11";
+    nixpkgs.url = "nixpkgs/nixos-24.11";
   };
   outputs = { self, nixpkgs, ... }: let
     pkgs_x86 = import nixpkgs {
@@ -20,6 +20,7 @@
       });
     in {
       nixpkgs = {
+          config.allowUnfree = true;
           config.allowUnsupportedSystem = false;
           overlays = [ allowMissingKernelModules appOverlay ];
           crossSystem = lib.systems.examples.raspberryPi;

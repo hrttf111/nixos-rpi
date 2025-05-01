@@ -10,13 +10,18 @@
   boot.loader.generic-extlinux-compatible.enable = true;
 
   boot.consoleLogLevel = lib.mkDefault 7;
-  boot.kernelPackages = pkgs.linuxPackages_rpi1;
   boot.kernelParams = [ "coherent_pool=4M" "dtoverlay=dwc2" "console=ttyAMA0,115200" "console=tty1" ];
-  #boot.kernelPackages = pkgs.linuxKernel.packages.linux_rpi1;
+  #boot.kernelPackages = lib.mkForce pkgs.linuxKernel.packages.linux_rpi1_6_6_31;
+  #boot.kernelPackages = lib.mkForce pkgs.linuxKernel.packages.linux_rpi1_6_6_74;
+  boot.kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
 
   sdImage = {
     populateFirmwareCommands = let
       configTxt = pkgs.writeText "config.txt" ''
+        # u-boot refuses to start (gets stuck at rainbow polygon) without this,
+        # at least on Raspberry Pi 0.
+        enable_uart=1
+
         # Prevent the firmware from smashing the framebuffer setup done by the mainline kernel
         # when attempting to show low-voltage or overtemperature warnings.
         avoid_warnings=1

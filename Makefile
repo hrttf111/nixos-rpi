@@ -1,4 +1,4 @@
-DEST_DRIVE?=/dev/sda
+DEST_DRIVE?=/dev/sdb
 SERIAL?=/dev/ttyUSB0
 PASSWORD?=raspberry
 

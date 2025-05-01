@@ -1,0 +1,152 @@
+--- a/drivers/pwm/pwm-rp1.c
++++ b/drivers/pwm/pwm-rp1.c
+@@ -20,6 +20,7 @@
+ #include <linux/of.h>
+ #include <linux/platform_device.h>
+ #include <linux/pwm.h>
++#include <linux/math64.h>
+ 
+ #define PWM_GLOBAL_CTRL		0x000
+ #define PWM_CHANNEL_CTRL(x)	(0x014 + ((x) * 16))
+@@ -88,13 +89,13 @@
+ 	}
+ 
+ 	/* set period */
+-	clk_period = DIV_ROUND_CLOSEST(NSEC_PER_SEC, clk_rate);
++	clk_period = DIV_U64_ROUND_CLOSEST(NSEC_PER_SEC, clk_rate);
+ 
+-	writel(DIV_ROUND_CLOSEST(state->duty_cycle, clk_period),
++	writel(DIV_U64_ROUND_CLOSEST(state->duty_cycle, clk_period),
+ 	       pc->base + PWM_DUTY(pwm->hwpwm));
+ 
+ 	/* set duty cycle */
+-	writel(DIV_ROUND_CLOSEST(state->period, clk_period),
++	writel(DIV_U64_ROUND_CLOSEST(state->period, clk_period),
+ 	       pc->base + PWM_RANGE(pwm->hwpwm));
+ 
+ 	/* set polarity */
+--- a/drivers/i2c/busses/i2c-designware-common.c
++++ b/drivers/i2c/busses/i2c-designware-common.c
+@@ -25,6 +25,7 @@
+ #include <linux/swab.h>
+ #include <linux/types.h>
+ #include <linux/units.h>
++#include <linux/math64.h>
+ 
+ #include "i2c-designware-core.h"
+ 
+@@ -380,7 +381,7 @@
+ 		 *
+ 		 * If your hardware is free from tHD;STA issue, try this one.
+ 		 */
+-		return DIV_ROUND_CLOSEST_ULL((u64)ic_clk * tSYMBOL, MICRO) -
++		return DIV_U64_ROUND_CLOSEST((u64)ic_clk * tSYMBOL, MICRO) -
+ 		       8 + offset;
+ 	else
+ 		/*
+@@ -397,7 +398,7 @@
+ 		 * The reason why we need to take into account "tf" here,
+ 		 * is the same as described in i2c_dw_scl_lcnt().
+ 		 */
+-		return DIV_ROUND_CLOSEST_ULL((u64)ic_clk * (tSYMBOL + tf), MICRO) -
++		return DIV_U64_ROUND_CLOSEST((u64)ic_clk * (tSYMBOL + tf), MICRO) -
+ 		       3 + offset;
+ }
+ 
+@@ -414,7 +415,7 @@
+ 	 * account the fall time of SCL signal (tf).  Default tf value
+ 	 * should be 0.3 us, for safety.
+ 	 */
+-	return DIV_ROUND_CLOSEST_ULL((u64)ic_clk * (tLOW + tf), MICRO) -
++	return DIV_U64_ROUND_CLOSEST((u64)ic_clk * (tLOW + tf), MICRO) -
+ 	       1 + offset;
+ }
+ 
+--- a/drivers/i2c/busses/i2c-designware-platdrv.c
++++ b/drivers/i2c/busses/i2c-designware-platdrv.c
+@@ -32,6 +32,7 @@
+ #include <linux/slab.h>
+ #include <linux/suspend.h>
+ #include <linux/units.h>
++#include <linux/math64.h>
+ 
+ #include "i2c-designware-core.h"
+ 
+--- a/drivers/media/platform/raspberrypi/rp1_cfe/cfe.c
++++ b/drivers/media/platform/raspberrypi/rp1_cfe/cfe.c
+@@ -27,6 +27,7 @@
+ #include <linux/slab.h>
+ #include <linux/uaccess.h>
+ #include <linux/videodev2.h>
++#include <linux/math64.h>
+ 
+ #include <media/v4l2-async.h>
+ #include <media/v4l2-common.h>
+@@ -1721,6 +1722,7 @@
+ 		struct v4l2_meta_format *meta_fmt = &node->meta_fmt.fmt.meta;
+ 		const struct cfe_fmt *fmt;
+ 		u32 source_size;
++        u64 temp1;
+ 
+ 		fmt = find_format_by_code(source_fmt->code);
+ 		if (!fmt || fmt->fourcc != meta_fmt->dataformat) {
+@@ -1729,7 +1731,9 @@
+ 			goto out;
+ 		}
+ 
+-		source_size = DIV_ROUND_UP(source_fmt->width * source_fmt->height * fmt->depth, 8);
++        temp1 = source_fmt->width * source_fmt->height * fmt->depth;
++		//source_size = do_div(temp1, 8);
++        source_size = temp1 >> 3;
+ 
+ 		if (source_fmt->code != MEDIA_BUS_FMT_SENSOR_DATA) {
+ 			cfe_err("Bad metadata mbus format\n");
+--- a/arch/arm/configs/bcmrpi_defconfig
++++ b/arch/arm/configs/bcmrpi_defconfig
+@@ -837,6 +837,7 @@
+ CONFIG_USB_STV06XX=m
+ CONFIG_USB_PWC=m
+ CONFIG_USB_S2255=m
++CONFIG_VIDEO_RP1_CFE=m
+ CONFIG_VIDEO_USBTV=m
+ CONFIG_USB_VIDEO_CLASS=m
+ CONFIG_VIDEO_GO7007=m
+--- a/drivers/media/platform/raspberrypi/rp1_cfe/Makefile
++++ b/drivers/media/platform/raspberrypi/rp1_cfe/Makefile
+@@ -2,5 +2,5 @@
+ #
+ # Makefile for RP1 Camera Front End driver
+ #
+-rp1-cfe-objs := cfe.o csi2.o pisp_fe.o dphy.o
+-obj-$(CONFIG_VIDEO_RP1_CFE) += rp1-cfe.o
++#rp1-cfe-objs := cfe.o csi2.o pisp_fe.o dphy.o
++#obj-$(CONFIG_VIDEO_RP1_CFE) += rp1-cfe.o
+--- a/drivers/i2c/busses/Makefile
++++ b/drivers/i2c/busses/Makefile
+@@ -53,16 +53,16 @@
+ obj-$(CONFIG_I2C_CBUS_GPIO)	+= i2c-cbus-gpio.o
+ obj-$(CONFIG_I2C_CPM)		+= i2c-cpm.o
+ obj-$(CONFIG_I2C_DAVINCI)	+= i2c-davinci.o
+-obj-$(CONFIG_I2C_DESIGNWARE_CORE)			+= i2c-designware-core.o
+-i2c-designware-core-y					:= i2c-designware-common.o
+-i2c-designware-core-y					+= i2c-designware-master.o
+-i2c-designware-core-$(CONFIG_I2C_DESIGNWARE_SLAVE) 	+= i2c-designware-slave.o
+-obj-$(CONFIG_I2C_DESIGNWARE_PLATFORM)			+= i2c-designware-platform.o
+-i2c-designware-platform-y 				:= i2c-designware-platdrv.o
+-i2c-designware-platform-$(CONFIG_I2C_DESIGNWARE_AMDPSP)	+= i2c-designware-amdpsp.o
+-i2c-designware-platform-$(CONFIG_I2C_DESIGNWARE_BAYTRAIL) += i2c-designware-baytrail.o
+-obj-$(CONFIG_I2C_DESIGNWARE_PCI)			+= i2c-designware-pci.o
+-i2c-designware-pci-y					:= i2c-designware-pcidrv.o
++#obj-$(CONFIG_I2C_DESIGNWARE_CORE)			+= i2c-designware-core.o
++#i2c-designware-core-y					:= i2c-designware-common.o
++#i2c-designware-core-y					+= i2c-designware-master.o
++#i2c-designware-core-$(CONFIG_I2C_DESIGNWARE_SLAVE) 	+= i2c-designware-slave.o
++#obj-$(CONFIG_I2C_DESIGNWARE_PLATFORM)			+= i2c-designware-platform.o
++#i2c-designware-platform-y 				:= i2c-designware-platdrv.o
++#i2c-designware-platform-$(CONFIG_I2C_DESIGNWARE_AMDPSP)	+= i2c-designware-amdpsp.o
++#i2c-designware-platform-$(CONFIG_I2C_DESIGNWARE_BAYTRAIL) += i2c-designware-baytrail.o
++#obj-$(CONFIG_I2C_DESIGNWARE_PCI)			+= i2c-designware-pci.o
++#i2c-designware-pci-y					:= i2c-designware-pcidrv.o
+ obj-$(CONFIG_I2C_DIGICOLOR)	+= i2c-digicolor.o
+ obj-$(CONFIG_I2C_EG20T)		+= i2c-eg20t.o
+ obj-$(CONFIG_I2C_EMEV2)		+= i2c-emev2.o

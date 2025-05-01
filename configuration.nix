@@ -1,8 +1,7 @@
 { config, pkgs, lib, ... }:
 {
-  system.stateVersion = "22.11";
+  system.stateVersion = "24.11";
 
-  environment.noXlibs = lib.mkForce true;
   environment.defaultPackages = lib.mkForce [];
 
   environment.systemPackages = with pkgs; [
@@ -47,6 +46,8 @@
 
   networking.hostName = "rpi";
   networking.useDHCP = false;
+  networking.firewall.allowedUDPPorts = [ 631 ];
+  networking.firewall.allowedTCPPorts = [ 631 ];
 
   i18n.defaultLocale = "en_US.UTF-8";
   i18n.supportedLocales = [ (config.i18n.defaultLocale + "/UTF-8") ];
@@ -54,8 +55,8 @@
 
   services.openssh = {
     enable = true;
-    kbdInteractiveAuthentication = false;
-    permitRootLogin = "no";
+    settings.PermitRootLogin = "no";
+    settings.KbdInteractiveAuthentication = false;
     extraConfig = ''
       AuthenticationMethods password
     '';
@@ -64,20 +65,29 @@
   services.dbus.enable = true;
   services.xserver.enable = lib.mkForce false;
 
-  services.avahi.enable = true;
-  services.avahi.nssmdns = true;
-  services.avahi.publish.enable = true;
-  services.avahi.publish.userServices = true;
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    publish.enable = true;
+    publish.userServices = true;
+  };
 
-  services.printing.enable = true;
-  services.printing.drivers = [ pkgs.splix ];
-  services.printing.browsing = true;
-  services.printing.listenAddresses = [ "*:631" ];
-  services.printing.allowFrom = [ "all" ];
-  services.printing.defaultShared = true;
+  services.printing = {
+    enable = true;
+    drivers = [ pkgs.splix ];
+    browsing = true;
+    listenAddresses = [ "*:631" ];
+    allowFrom = [ "all" ];
+    defaultShared = true;
+    startWhenNeeded = false;
+  };
 
-  networking.firewall.allowedUDPPorts = [ 631 ];
-  networking.firewall.allowedTCPPorts = [ 631 ];
+  systemd.services.avahi-daemon.serviceConfig.CapabilityBoundingSet = lib.mkForce [];
+  systemd.services.avahi-daemon.serviceConfig.SystemCallFilter = lib.mkForce [];
+  systemd.services.avahi-daemon.serviceConfig.SystemCallArchitectures = lib.mkForce "";
+
+  security.audit.enable = lib.mkForce false;
+  security.apparmor.enable = lib.mkForce false;
 
   users = {
     groups.pi = {
@@ -111,4 +121,8 @@
   documentation.nixos.enable = lib.mkForce false;
 
   programs.command-not-found.enable = lib.mkForce false;
+
+  programs.ssh.setXAuthLocation = false;
+  security.pam.services.su.forwardXAuth = lib.mkForce false;
+  fonts.fontconfig.enable = false;
 }
