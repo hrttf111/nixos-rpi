@@ -18,10 +18,6 @@ self: super: {
         --replace 'g++' $CXX \
     '';
   });
-  efivar = super.efivar.overrideAttrs (oldAttrs: rec {
-    CFLAGS = "-Og  -g3 -Wall -Wextra  -std=gnu11";
-    NIX_CFLAGS_COMPILE = "-Og  -g3 -Wall -Wextra  -std=gnu11";
-  });
   poppler = super.poppler.overrideAttrs (oldAttrs: rec {
     nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [ pkgs_x86.pkg-config pkgs_x86.glib.dev ];
   });

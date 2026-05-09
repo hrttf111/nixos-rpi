@@ -14,7 +14,7 @@ serial:
 	screen $(SERIAL) 115200
 
 dd:
-	unzstd -c result/sd-image/nixos-sd-image-*-armv6l-linux.img.zst | dd of=$(DEST_DRIVE)
+	unzstd -c result/sd-image/nixos-image-sd-card-*-armv6l-linux.img.zst | dd of=$(DEST_DRIVE)
 
 clean:
 	rm -rf ./result

@@ -1,6 +1,6 @@
 {
   inputs = rec {
-    nixpkgs.url = "nixpkgs/nixos-24.11";
+    nixpkgs.url = "nixpkgs/nixos-25.11";
   };
   outputs = { self, nixpkgs, ... }: let
     pkgs_x86 = import nixpkgs {

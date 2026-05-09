@@ -1,6 +1,6 @@
 { config, pkgs, lib, ... }:
 {
-  system.stateVersion = "24.11";
+  system.stateVersion = "25.11";
 
   environment.defaultPackages = lib.mkForce [];
 
@@ -28,8 +28,6 @@
     inetutils
 
     testdisk
-    efibootmgr
-    efivar
     parted
 
     fuse
